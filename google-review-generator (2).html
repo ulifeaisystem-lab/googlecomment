@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>五星好評小幫手</title>
+<style>
+  :root{
+    --gold:#e8a33d;
+    --gold-dark:#c9822a;
+    --bg1:#fff8ef;
+    --bg2:#fff1dc;
+    --ink:#3a2e22;
+    --sub:#8a7864;
+    --card:#ffffff;
+    --line:#f0e1c9;
+    --green:#4caf7d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:24px 16px 60px;}
+  h1{font-size:1.4rem;margin:0 0 4px;text-align:center;}
+  .sub{color:var(--sub);text-align:center;font-size:.9rem;margin-bottom:24px;}
+  .stars{text-align:center;font-size:1.6rem;letter-spacing:4px;color:var(--gold);margin-bottom:6px;}
+
+  /* ---- 表單（老闆設定畫面）---- */
+  label{display:block;font-size:.85rem;font-weight:600;margin:16px 0 6px;color:var(--ink);}
+  input[type=text], textarea{
+    width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;
+    font-size:1rem;background:#fff;font-family:inherit;color:var(--ink);
+  }
+  textarea{resize:vertical;min-height:70px;}
+  input[type=text]:focus, textarea:focus{outline:none;border-color:var(--gold);}
+  .hint{font-size:.75rem;color:var(--sub);margin-top:4px;}
+  .btn{
+    display:block;width:100%;text-align:center;padding:15px;border:none;border-radius:14px;
+    font-size:1.05rem;font-weight:700;cursor:pointer;margin-top:22px;
+    background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#fff;
+    box-shadow:0 6px 16px rgba(201,130,42,.35);
+  }
+  .btn:active{transform:scale(.98);}
+  .btn.secondary{
+    background:#fff;color:var(--gold-dark);border:2px solid var(--gold);box-shadow:none;
+  }
+
+  .result{margin-top:24px;padding:18px;background:var(--card);border-radius:16px;border:1px solid var(--line);}
+  .result h3{margin:0 0 10px;font-size:1rem;}
+  .link-box{
+    word-break:break-all;font-size:.8rem;background:#fbf3e6;padding:10px 12px;border-radius:10px;
+    color:var(--sub);margin-bottom:10px;
+  }
+  .qr{text-align:center;margin:14px 0;}
+  .qr img{width:180px;height:180px;border-radius:12px;border:1px solid var(--line);}
+
+  /* ---- 顧客選評論畫面 ---- */
+  .card{
+    background:var(--card);border:1.5px solid var(--line);border-radius:16px;
+    padding:16px 16px 14px;margin-bottom:14px;cursor:pointer;transition:.15s;
+    position:relative;
+  }
+  .card:active{transform:scale(.98);}
+  .card.selected{border-color:var(--gold);background:#fff9ef;box-shadow:0 4px 14px rgba(232,163,61,.25);}
+  .tag{
+    display:inline-block;font-size:.7rem;font-weight:700;color:var(--gold-dark);
+    background:#fbeed7;padding:3px 10px;border-radius:20px;margin-bottom:8px;
+  }
+  .text{font-size:.95rem;line-height:1.7;color:var(--ink);white-space:pre-wrap;}
+  .copy-badge{
+    position:absolute;top:14px;right:14px;font-size:.75rem;color:var(--green);font-weight:700;opacity:0;transition:.2s;
+  }
+  .copy-badge.show{opacity:1;}
+
+  .footer-bar{
+    position:sticky;bottom:0;left:0;right:0;
+    background:linear-gradient(180deg,rgba(255,248,239,0),var(--bg1) 30%);
+    padding:16px 0 4px;margin-top:10px;
+  }
+  .go-btn{
+    display:block;width:100%;text-align:center;padding:16px;border:none;border-radius:16px;
+    font-size:1.1rem;font-weight:800;cursor:pointer;color:#fff;
+    background:linear-gradient(135deg,#4caf7d,#3b8f65);
+    box-shadow:0 8px 20px rgba(60,140,100,.35);
+  }
+  .go-btn:disabled{background:#d9d0c1;box-shadow:none;color:#fff;cursor:not-allowed;}
+  .toast{
+    position:fixed;top:18px;left:50%;transform:translateX(-50%);
+    background:#3a2e22;color:#fff;padding:10px 20px;border-radius:30px;font-size:.85rem;
+    opacity:0;pointer-events:none;transition:.25s;z-index:99;
+  }
+  .toast.show{opacity:1;top:24px;}
+  .store-name{text-align:center;font-weight:700;font-size:1.1rem;margin-bottom:2px;}
+  .powered{text-align:center;font-size:.7rem;color:var(--sub);margin-top:18px;}
+  .refresh-btn{
+    display:block;width:100%;text-align:center;padding:12px;border-radius:12px;
+    font-size:.9rem;font-weight:700;cursor:pointer;margin:6px 0 16px;
+    background:#fff;color:var(--gold-dark);border:1.5px dashed var(--gold);
+  }
+  .refresh-btn:disabled{opacity:.5;cursor:wait;}
+  .spin{display:inline-block;animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== 共用：評論範本生成 ===================== */
+function pick(arr,n){
+  const c=[...arr]; const out=[];
+  while(out.length<n && c.length){
+    out.push(c.splice(Math.floor(Math.random()*c.length),1)[0]);
+  }
+  return out;
+}
+function joinZh(arr){
+  if(arr.length===0) return '';
+  if(arr.length===1) return arr[0];
+  return arr.slice(0,-1).join('、')+'和'+arr[arr.length-1];
+}
+
+function pickOne(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+/* 開頭句庫：每種語氣風格各數種寫法 */
+function getOpeners(name, service){
+  return [
+    `真心推薦${name}！`,
+    `跟你們說，${name}真的可以去試試看，`,
+    `第一次到${name}體驗${service}，`,
+    `已經是回訪${name}好幾次了，`,
+    `原本只是抱著試試看的心態走進${name}，`,
+    `很喜歡${name}給人的感覺，`,
+    `是朋友推薦我來${name}的，`,
+    `做完${service}才知道${name}原來這麼讚，`,
+    `${service}真的很推！`,
+    `這次來${name}體驗${service}，`,
+    `路過${name}臨時進去晃晃，`,
+    `已經跟身邊朋友大力推薦${name}了，`
+  ];
+}
+
+/* 重點描述句庫：把 highlights 用不同句型帶入 */
+function getBodies(H){
+  return [
+    `${joinZh(H(3))}都讓我印象很深刻`,
+    `整個過程${joinZh(H(2))}，完全感受得到用心`,
+    `重點是${joinZh(H(2))}，完全不會有壓力`,
+    `${joinZh(H(2))}，是我覺得最加分的地方`,
+    `從頭到尾${joinZh(H(3))}，整體體驗很順`,
+    `尤其${joinZh(H(2))}，比想像中還要好`,
+    `不管是${joinZh(H(2))}都維持得很穩定`,
+    `${joinZh(H(2))}，完全不是那種制式化的服務`,
+    `光是${joinZh(H(2))}就讓人很想再來一次`,
+    `服務過程中${joinZh(H(2))}，讓人很放心`
+  ];
+}
+
+/* 結尾句庫 */
+function getClosers(){
+  return [
+    `會想再回來的地方。`,
+    `推薦給還在猶豫的朋友！`,
+    `五顆星實至名歸。`,
+    `已經跟朋友大力推薦了。`,
+    `之後應該會變成常客。`,
+    `整體來說很滿意，值得！`,
+    `真心覺得CP值很高。`,
+    `會持續支持下去。`,
+    `早知道就早點來了。`,
+    `現在變成我的口袋名單之一。`,
+    `你們也趕快去試試看！`,
+    `下次還會再約朋友一起來。`
+  ];
+}
+
+function generateReviews(data){
+  const name = data.name || '這家店';
+  const service = data.service || '服務';
+  const hlRaw = (data.highlights||'').split(/[,，、\n]/).map(s=>s.trim()).filter(Boolean);
+  const H = (n)=> pick(hlRaw.length? hlRaw : ['服務很好','整體體驗不錯'], Math.min(n, hlRaw.length? hlRaw.length:2));
+
+  const openers = getOpeners(name, service);
+  const closers = getClosers();
+
+  const used = new Set();
+  const reviews = [];
+  let attempts = 0;
+
+  while(reviews.length < 9 && attempts < 60){
+    attempts++;
+    const opener = pickOne(openers);
+    const bodies = getBodies(H); // 每次重新抽 highlights 組合，內容更多變
+    const bodyCount = Math.random() < 0.35 ? 2 : 1; // 偶爾用兩段重點描述，長度自然不一
+    const chosenBodies = pick(bodies, bodyCount);
+    const closer = pickOne(closers);
+
+    const key = opener + '|' + chosenBodies.join('|') + '|' + closer;
+    if(used.has(key)) continue;
+    used.add(key);
+
+    let text = opener + chosenBodies.join('，') + '，' + closer;
+    text = text.replace(/，，/g,'，').replace(/。，/g,'。');
+    reviews.push(text.trim());
+  }
+
+  return reviews;
+}
+
+/* ===================== 畫面渲染 ===================== */
+const app = document.getElementById('app');
+const toastEl = document.getElementById('toast');
+function showToast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(()=>toastEl.classList.remove('show'), 1600);
+}
+
+const params = new URLSearchParams(location.search);
+const hasCustomerData = params.get('name') && params.get('link');
+
+if(hasCustomerData){
+  renderCustomerView({
+    name: params.get('name'),
+    service: params.get('service')||'服務',
+    highlights: params.get('hl')||'',
+    link: decodeURIComponent(params.get('link'))
+  });
+}else{
+  renderAdminView();
+}
+
+/* ---------- 老闆：設定畫面 ---------- */
+function renderAdminView(){
+  const saved = JSON.parse(localStorage.getItem('reviewgen_store')||'{}');
+  app.innerHTML = `
+    <h1>五星好評小幫手</h1>
+    <div class="sub">填好店家資訊，產生給客人掃碼的評論頁面連結</div>
+
+    <label>店名</label>
+    <input type="text" id="f_name" placeholder="例如：煥然一新韓式耳顏管理" value="${saved.name||''}">
+
+    <label>服務類型</label>
+    <input type="text" id="f_service" placeholder="例如：韓式耳穴美容" value="${saved.service||''}">
+
+    <label>希望評論提到的重點（用逗號分隔）</label>
+    <textarea id="f_hl" placeholder="例如：環境舒適,老師專業,很放鬆,會想再來">${saved.highlights||''}</textarea>
+    <div class="hint">建議填 3~6 個關鍵字，系統會自動組合成不同語氣的評論</div>
+
+    <label>Google 商家評論連結</label>
+    <input type="text" id="f_link" placeholder="貼上你的 Google 評論連結 (g.page/r/... 或 search.google.com/local/writereview?placeid=...)" value="${saved.link||''}">
+
+    <button class="btn" id="genBtn">產生評論頁面連結</button>
+
+    <div id="resultBox"></div>
+  `;
+
+  document.getElementById('genBtn').onclick = ()=>{
+    const name = document.getElementById('f_name').value.trim();
+    const service = document.getElementById('f_service').value.trim();
+    const hl = document.getElementById('f_hl').value.trim();
+    const link = document.getElementById('f_link').value.trim();
+
+    if(!name || !link){
+      showToast('請至少填寫「店名」和「Google 評論連結」');
+      return;
+    }
+    localStorage.setItem('reviewgen_store', JSON.stringify({name,service,highlights:hl,link}));
+
+    const url = new URL(location.href.split('?')[0]);
+    url.searchParams.set('name', name);
+    if(service) url.searchParams.set('service', service);
+    if(hl) url.searchParams.set('hl', hl);
+    url.searchParams.set('link', encodeURIComponent(link));
+    const finalUrl = url.toString();
+
+    const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(finalUrl)}`;
+
+    document.getElementById('resultBox').innerHTML = `
+      <div class="result">
+        <h3>✅ 專屬評論頁面已產生</h3>
+        <div class="link-box">${finalUrl}</div>
+        <div class="qr"><img src="${qrSrc}" alt="QR Code"></div>
+        <button class="btn secondary" id="copyLinkBtn">複製連結</button>
+        <button class="btn" id="previewBtn">預覽顧客畫面</button>
+      </div>
+    `;
+    document.getElementById('copyLinkBtn').onclick = ()=>{
+      navigator.clipboard.writeText(finalUrl).then(()=>showToast('連結已複製'));
+    };
+    document.getElementById('previewBtn').onclick = ()=>{
+      location.href = finalUrl;
+    };
+  };
+}
+
+/* ---------- 顧客：選評論畫面 ---------- */
+function renderCustomerView(data){
+  let reviews = generateReviews(data);
+  renderCards(data, reviews);
+}
+
+function renderCards(data, reviews){
+  const cardsHtml = reviews.map((text,i)=>`
+    <div class="card" data-idx="${i}">
+      <span class="copy-badge">已複製 ✓</span>
+      <div class="text">${text}</div>
+    </div>
+  `).join('');
+
+  app.innerHTML = `
+    <div class="stars">★★★★★</div>
+    <div class="store-name">${data.name}</div>
+    <div class="sub">點選一則你喜歡的評論，會自動複製文字</div>
+    <button class="refresh-btn" id="refreshBtn">🔄 換一批新的評論</button>
+    <div id="cardList">${cardsHtml}</div>
+    <div class="footer-bar">
+      <button class="go-btn" id="goBtn" disabled>請先選擇一則評論 ⬆</button>
+    </div>
+    <div class="powered">感謝您的支持與鼓勵 🙏</div>
+  `;
+
+  const goBtn = document.getElementById('goBtn');
+  let selectedText = '';
+
+  function bindCards(){
+    document.querySelectorAll('.card').forEach(card=>{
+      card.addEventListener('click', ()=>{
+        const idx = card.getAttribute('data-idx');
+        selectedText = reviews[idx];
+
+        document.querySelectorAll('.card').forEach(c=>{
+          c.classList.remove('selected');
+          c.querySelector('.copy-badge').classList.remove('show');
+        });
+        card.classList.add('selected');
+        card.querySelector('.copy-badge').classList.add('show');
+
+        navigator.clipboard.writeText(selectedText).then(()=>{
+          showToast('已複製，前往 Google 貼上吧！');
+          goBtn.disabled = false;
+          goBtn.textContent = '前往 Google 評論 →';
+        }).catch(()=>{
+          showToast('複製失敗，請長按文字手動複製');
+          goBtn.disabled = false;
+          goBtn.textContent = '前往 Google 評論 →';
+        });
+      });
+    });
+  }
+  bindCards();
+
+  goBtn.addEventListener('click', ()=>{
+    if(selectedText){
+      navigator.clipboard.writeText(selectedText).catch(()=>{});
+    }
+    window.open(data.link, '_blank');
+  });
+
+  document.getElementById('refreshBtn').addEventListener('click', ()=>{
+    reviews = generateReviews(data);
+    renderCards(data, reviews);
+    showToast('已換一批新的評論！');
+  });
+}
+</script>
+</body>
+</html>
